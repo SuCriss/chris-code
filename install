@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Chris Code Installer
+# Usage: curl -fsSL https://raw.githubusercontent.com/SuCriss/chris-code/main/install | bash
+
+REPO="SuCriss/chris-code"
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+info()  { echo -e "${GREEN}[info]${NC} $1"; }
+warn()  { echo -e "${YELLOW}[warn]${NC} $1"; }
+error() { echo -e "${RED}[error]${NC} $1"; exit 1; }
+
+# Check for required tools
+check_deps() {
+  for cmd in git node npm; do
+    if ! command -v "$cmd" &>/dev/null; then
+      error "$cmd is required but not installed."
+    fi
+  done
+}
+
+# Install Bun if not present
+install_bun() {
+  if command -v bun &>/dev/null; then
+    info "Bun already installed: $(bun --version)"
+    return
+  fi
+  info "Installing Bun..."
+  curl -fsSL https://bun.sh/install | bash
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  if ! command -v bun &>/dev/null; then
+    warn "Bun install failed. Falling back to npm."
+    return
+  fi
+  info "Bun installed: $(bun --version)"
+}
+
+# Clone and build
+install_chris_code() {
+  local install_dir="${CHRIS_CODE_DIR:-$HOME/.chris-code}"
+
+  if [ -d "$install_dir" ]; then
+    info "Updating existing installation at $install_dir..."
+    cd "$install_dir"
+    git pull --ff-only 2>/dev/null || {
+      warn "Git pull failed, reinstalling..."
+      cd "$HOME"
+      rm -rf "$install_dir"
+      git clone "https://github.com/$REPO.git" "$install_dir"
+      cd "$install_dir"
+    }
+  else
+    info "Cloning Chris Code to $install_dir..."
+    git clone "https://github.com/$REPO.git" "$install_dir"
+    cd "$install_dir"
+  fi
+
+  info "Installing dependencies..."
+  if command -v bun &>/dev/null; then
+    bun install
+    info "Building..."
+    bun run build
+  else
+    npm install
+    info "Building..."
+    npm run build
+  fi
+
+  # Create symlink
+  local bin_dir="$HOME/.local/bin"
+  mkdir -p "$bin_dir"
+
+  if command -v bun &>/dev/null; then
+    ln -sf "$install_dir/dist/cli-bun.js" "$bin_dir/chris-code"
+  else
+    ln -sf "$install_dir/dist/cli-node.js" "$bin_dir/chris-code"
+  fi
+  chmod +x "$bin_dir/chris-code"
+
+  # Add to PATH if needed
+  if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
+    local shell_rc="$HOME/.bashrc"
+    [ -f "$HOME/.zshrc" ] && shell_rc="$HOME/.zshrc"
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$shell_rc"
+    warn "Added $bin_dir to PATH in $shell_rc. Run 'source $shell_rc' or restart your terminal."
+  fi
+
+  info "Chris Code installed successfully!"
+  echo ""
+  echo -e "  ${BOLD}Run:${NC} chris-code"
+  echo -e "  ${BOLD}Or:${NC}  cd $install_dir && bun run dev"
+  echo ""
+}
+
+main() {
+  echo -e "${BOLD}Chris Code Installer${NC}"
+  echo ""
+  check_deps
+  install_bun
+  install_chris_code
+}
+
+main "$@"

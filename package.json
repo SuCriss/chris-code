@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "description": "Chris Code — AI coding assistant in the terminal, powered by multiple LLM providers",
   "type": "module",
-  "author": "chris",
+  "author": "SuCriss",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chris/chris-code.git"
+    "url": "git+https://github.com/SuCriss/chris-code.git"
   },
-  "homepage": "https://github.com/chris/chris-code#readme",
+  "homepage": "https://github.com/SuCriss/chris-code#readme",
   "bugs": {
-    "url": "https://github.com/chris/chris-code/issues"
+    "url": "https://github.com/SuCriss/chris-code/issues"
   },
   "keywords": [
     "claude",
