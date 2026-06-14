@@ -2,69 +2,50 @@ import * as React from 'react';
 import { Box, Text } from '@anthropic/ink';
 import { env } from '../../utils/env.js';
 
-export type ClawdPose =
-  | 'default'
-  | 'arms-up' // both arms raised (used during jump)
-  | 'look-left' // both pupils shifted left
-  | 'look-right'; // both pupils shifted right
+export type ClawdPose = 'default' | 'arms-up' | 'look-left' | 'look-right';
 
 type Props = {
   pose?: ClawdPose;
 };
 
-// Standard-terminal pose fragments. Each row is split into segments so we can
-// vary only the parts that change (eyes, arms) while keeping the body/bg spans
-// stable. All poses end up 9 cols wide.
+// Chris Code — "Code Chip" avatar.
+// Diamond ears + dot eyes + nose diamond + bracket body. 9 cols, 3 rows.
 //
-// arms-up: the row-2 arm shapes move to row 1 as their bottom-heavy mirrors.
-// look-* use different eye chars so both eyes appear to move.
-type Segments = {
-  r1L: string;
-  r1E: string;
-  r1R: string;
-  r2L: string;
-  r2R: string;
+//   default:       look-left:     look-right:    arms-up:
+//    v ● ● v        v ● ● v        v ● ● v        v ● ● v
+//     < v >          < v >          < v >         /< v >\
+//     { ▼ }          { ▼ }          { ▼ }        {  ▼  }
+
+const FACE_ROW1: Record<ClawdPose, string> = {
+  default: ' v ● ● v ',
+  'look-left': ' v ● ● v ',
+  'look-right': ' v ● ● v ',
+  'arms-up': ' v ● ● v ',
 };
 
-const POSES: Record<ClawdPose, Segments> = {
-  default: { r1L: ' ▐', r1E: '▛███▜', r1R: '▌', r2L: '▝▜', r2R: '▛▘' },
-  'look-left': { r1L: ' ▐', r1E: '▟███▟', r1R: '▌', r2L: '▝▜', r2R: '▛▘' },
-  'look-right': { r1L: ' ▐', r1E: '▙███▙', r1R: '▌', r2L: '▝▜', r2R: '▛▘' },
-  'arms-up': { r1L: '▗▟', r1E: '▛███▜', r1R: '▙▖', r2L: ' ▜', r2R: '▛ ' },
+const FACE_ROW2: Record<ClawdPose, string> = {
+  default: '  < v >  ',
+  'look-left': '  < v >  ',
+  'look-right': '  < v >  ',
+  'arms-up': ' /< v >\\ ',
 };
 
-// Apple Terminal: bg-fill trick, only eye poses make sense
-const APPLE_EYES: Record<ClawdPose, string> = {
-  default: ' ▗   ▖ ',
-  'look-left': ' ▘   ▘ ',
-  'look-right': ' ▝   ▝ ',
-  'arms-up': ' ▗   ▖ ',
+const FACE_ROW3: Record<ClawdPose, string> = {
+  default: '  { ▼ }  ',
+  'look-left': '  { ▼ }  ',
+  'look-right': '  { ▼ }  ',
+  'arms-up': ' {  ▼  } ',
 };
 
 export function Clawd({ pose = 'default' }: Props = {}): React.ReactNode {
   if (env.terminal === 'Apple_Terminal') {
     return <AppleTerminalClawd pose={pose} />;
   }
-  const p = POSES[pose];
   return (
     <Box flexDirection="column">
-      <Text>
-        <Text color="clawd_body">{p.r1L}</Text>
-        <Text color="clawd_body" backgroundColor="clawd_background">
-          {p.r1E}
-        </Text>
-        <Text color="clawd_body">{p.r1R}</Text>
-      </Text>
-      <Text>
-        <Text color="clawd_body">{p.r2L}</Text>
-        <Text color="clawd_body" backgroundColor="clawd_background">
-          █████
-        </Text>
-        <Text color="clawd_body">{p.r2R}</Text>
-      </Text>
-      <Text color="clawd_body">
-        {'  '}▘▘ ▝▝{'  '}
-      </Text>
+      <Text color="clawd_body">{FACE_ROW1[pose]}</Text>
+      <Text color="clawd_body">{FACE_ROW2[pose]}</Text>
+      <Text color="clawd_body">{FACE_ROW3[pose]}</Text>
     </Box>
   );
 }
@@ -72,15 +53,12 @@ export function Clawd({ pose = 'default' }: Props = {}): React.ReactNode {
 function AppleTerminalClawd({ pose }: { pose: ClawdPose }): React.ReactNode {
   return (
     <Box flexDirection="column" alignItems="center">
-      <Text>
-        <Text color="clawd_body">▗</Text>
-        <Text color="clawd_background" backgroundColor="clawd_body">
-          {APPLE_EYES[pose]}
-        </Text>
-        <Text color="clawd_body">▖</Text>
+      <Text color="clawd_body"> v ● ● v </Text>
+      <Text color="clawd_body">
+        {' '}
+        {'<'} v {'>'}{' '}
       </Text>
-      <Text backgroundColor="clawd_body">{' '.repeat(7)}</Text>
-      <Text color="clawd_body">▘▘ ▝▝</Text>
+      <Text color="clawd_body">{FACE_ROW3[pose]}</Text>
     </Box>
   );
 }
