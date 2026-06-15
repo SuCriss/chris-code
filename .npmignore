@@ -1,0 +1,8 @@
+# Vendor binaries will be downloaded in postinstall
+dist/vendor/ripgrep/
+dist/vendor/audio-capture/
+
+# Keep other dist files
+!dist/chunks/
+!dist/cli*.js
+!dist/*.map
