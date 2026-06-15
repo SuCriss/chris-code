@@ -26,6 +26,7 @@ import type { QueuedCommand } from 'src/types/textInputTypes.js';
 import { addInvokedSkill, getSessionId } from '../../bootstrap/state.js';
 import { COMMAND_MESSAGE_TAG, COMMAND_NAME_TAG } from '../../constants/xml.js';
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js';
+import { getCwd } from '../cwd.js';
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
@@ -72,6 +73,12 @@ import { isRestrictedToPluginOnly, isSourceAdminTrusted } from '../settings/plug
 import { parseSlashCommand } from '../slashCommandParsing.js';
 import { sleep } from '../sleep.js';
 import { recordSkillUsage } from '../suggestions/skillUsageTracking.js';
+import {
+  recordCommandAssociation,
+  recordContextPreference,
+  detectContext,
+  getLastCommand,
+} from '../suggestions/intelligentSuggestions.js';
 import { logOTelEvent, redactIfDisabled } from '../telemetry/events.js';
 import { buildPluginCommandTelemetryFields } from '../telemetry/pluginTelemetry.js';
 import { getAssistantMessageContentLength } from '../tokens.js';
@@ -705,6 +712,18 @@ async function getMessagesForSlashCommand(
   // Track skill usage for ranking (only for prompt commands that are user-invocable)
   if (command.type === 'prompt' && command.userInvocable !== false) {
     recordSkillUsage(commandName);
+
+    // 智能建议学习：记录命令关联和上下文偏好
+    try {
+      const lastCommand = getLastCommand();
+      if (lastCommand && lastCommand !== commandName) {
+        recordCommandAssociation(lastCommand, commandName);
+      }
+      const context = detectContext(getCwd());
+      recordContextPreference(context, commandName);
+    } catch (err) {
+      // 忽略学习失败，不影响命令执行
+    }
   }
 
   // Check if the command is user-invocable

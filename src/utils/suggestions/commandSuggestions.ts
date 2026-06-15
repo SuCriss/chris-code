@@ -7,6 +7,13 @@ import {
 } from '../../commands.js'
 import type { SuggestionItem } from '../../components/PromptInput/PromptInputFooterSuggestions.js'
 import { getSkillUsageScore } from './skillUsageTracking.js'
+import {
+  detectContext,
+  getContextBasedRecommendations,
+  getCommandAssociations,
+  getLastCommand,
+  type ContextInfo,
+} from './intelligentSuggestions.js'
 
 // Treat these characters as word separators for command search
 const SEPARATORS = /[:_-]/g
@@ -301,6 +308,7 @@ function createCommandSuggestionItem(
 export function generateCommandSuggestions(
   input: string,
   commands: Command[],
+  cwd?: string,
 ): SuggestionItem[] {
   // Only process command input
   if (!isCommandInput(input)) {
@@ -314,12 +322,32 @@ export function generateCommandSuggestions(
 
   const query = input.slice(1).toLowerCase().trim()
 
+  // 检测上下文（仅在空查询或需要时）
+  let context: ContextInfo | undefined
+  let contextRecommendations: string[] = []
+  let associationRecommendations: string[] = []
+
+  if (cwd) {
+    context = detectContext(cwd)
+    contextRecommendations = getContextBasedRecommendations(context, commands)
+    const lastCommand = getLastCommand()
+    associationRecommendations = getCommandAssociations(lastCommand)
+  }
+
   // When just typing '/' without additional text
   if (query === '') {
     const visibleCommands = commands.filter(cmd => !cmd.isHidden)
 
-    // Find recently used skills (only prompt commands have usage tracking)
-    const recentlyUsed: Command[] = []
+    // 智能建议：上下文推荐 + 命令关联 + 最近使用
+    const smartRecommendations = new Set<string>()
+
+    // 1. 添加上下文推荐（权重最高）
+    contextRecommendations.forEach(cmd => smartRecommendations.add(cmd))
+
+    // 2. 添加命令关联推荐
+    associationRecommendations.forEach(cmd => smartRecommendations.add(cmd))
+
+    // 3. 添加最近使用的命令
     const commandsWithScores = visibleCommands
       .filter(cmd => cmd.type === 'prompt')
       .map(cmd => ({
@@ -330,8 +358,18 @@ export function generateCommandSuggestions(
       .sort((a, b) => b.score - a.score)
 
     // Take top 5 recently used skills
-    for (const item of commandsWithScores.slice(0, 5)) {
-      recentlyUsed.push(item.cmd)
+    commandsWithScores.slice(0, 5).forEach(item => {
+      smartRecommendations.add(getCommandName(item.cmd))
+    })
+
+    // 找出实际的命令对象
+    const recentlyUsed: Command[] = []
+    const smartRecommendationNames = Array.from(smartRecommendations)
+    for (const cmdName of smartRecommendationNames) {
+      const cmd = visibleCommands.find(c => getCommandName(c) === cmdName)
+      if (cmd) {
+        recentlyUsed.push(cmd)
+      }
     }
 
     // Create a set of recently used command IDs to avoid duplicates

@@ -488,6 +488,23 @@ export type GlobalConfig = {
 
   // Skill usage tracking for autocomplete ranking
   skillUsage?: Record<string, { usageCount: number; lastUsedAt: number }>
+  skillVisibility?: Record<string, { hidden: boolean }>
+
+  // Intelligent command suggestions
+  intelligentSuggestions?: {
+    commandAssociations?: Record<
+      string,
+      Array<{
+        command: string
+        nextCommand: string
+        count: number
+        lastUsedAt: number
+      }>
+    >
+    lastCommand?: string
+    contextPreferences?: Record<string, string[]>
+  }
+
   // Official marketplace auto-install tracking
   officialMarketplaceAutoInstallAttempted?: boolean // Whether auto-install was attempted
   officialMarketplaceAutoInstalled?: boolean // Whether auto-install succeeded
