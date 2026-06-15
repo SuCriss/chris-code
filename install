@@ -66,35 +66,23 @@ install_chris_code() {
     bun install
     info "Building..."
     bun run build
+    info "Registering chris command globally..."
+    bun link
   else
     npm install
     info "Building..."
     npm run build
-  fi
-
-  # Create symlink
-  local bin_dir="$HOME/.local/bin"
-  mkdir -p "$bin_dir"
-
-  if command -v bun &>/dev/null; then
-    ln -sf "$install_dir/dist/cli-bun.js" "$bin_dir/chris-code"
-  else
-    ln -sf "$install_dir/dist/cli-node.js" "$bin_dir/chris-code"
-  fi
-  chmod +x "$bin_dir/chris-code"
-
-  # Add to PATH if needed
-  if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
-    local shell_rc="$HOME/.bashrc"
-    [ -f "$HOME/.zshrc" ] && shell_rc="$HOME/.zshrc"
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$shell_rc"
-    warn "Added $bin_dir to PATH in $shell_rc. Run 'source $shell_rc' or restart your terminal."
+    info "Registering chris command globally..."
+    npm link
   fi
 
   info "Chris Code installed successfully!"
   echo ""
-  echo -e "  ${BOLD}Run:${NC} chris-code"
-  echo -e "  ${BOLD}Or:${NC}  cd $install_dir && bun run dev"
+  echo -e "  ${BOLD}Run:${NC} chris"
+  echo -e "  ${BOLD}Or:${NC}  chris-code"
+  echo ""
+  echo -e "  If 'chris' is not found, restart your terminal or run:"
+  echo -e "  ${BOLD}source ~/.bashrc${NC} (or ~/.zshrc)"
   echo ""
 }
 

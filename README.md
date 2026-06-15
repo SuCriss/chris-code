@@ -12,11 +12,17 @@
 # One-line install
 curl -fsSL https://raw.githubusercontent.com/SuCriss/chris-code/main/install | bash
 
-# Or clone and build
-git clone https://github.com/SuCriss/chris-code.git
-cd chris-code
-bun install
-bun run dev
+# Or install via npm
+npm install -g chris-code
+
+# Or install via bun
+bun install -g chris-code
+```
+
+Then just run:
+
+```bash
+chris
 ```
 
 First run: use `/login` to configure your LLM provider (Anthropic, OpenAI, Gemini, or any compatible API).
