@@ -9,27 +9,17 @@ const MAX_TRANSCRIPT_SIZE = 200_000
 const MAX_SESSIONS = 10
 const MIN_REPEAT_COUNT = 2
 
-export default async function distillCommand(
-  call: LocalCommandCall,
-): Promise<void> {
-  const { setMessages } = call
-
-  setMessages?.([
-    { type: 'text' as const, text: '🔬 Distilling... analyzing workflows...' },
-  ])
-
+const call: LocalCommandCall = async (args, context) => {
   try {
     const transcripts = await loadTranscripts()
     const workflows = detectRepeatedWorkflows(transcripts)
 
     if (workflows.length === 0) {
-      setMessages?.([
-        {
-          type: 'text' as const,
-          text: '🔬 No repeated workflows detected yet. Keep working — patterns emerge over time.',
-        },
-      ])
-      return
+      return {
+        type: 'text',
+        value:
+          '🔬 No repeated workflows detected yet. Keep working — patterns emerge over time.',
+      }
     }
 
     const memoryDir = getAutoMemPath()
@@ -65,18 +55,16 @@ ${wf.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
       .map(wf => `  • ${wf.name} (${wf.count}×): ${wf.description}`)
       .join('\n')
 
-    setMessages?.([
-      {
-        type: 'text' as const,
-        text: `🔬 Distill complete!\n- Analyzed ${transcripts.length} sessions\n- Found ${workflows.length} repeated workflows\n- Saved ${written} distill notes\n\n${summary}`,
-      },
-    ])
+    return {
+      type: 'text',
+      value: `🔬 Distill complete!\n- Analyzed ${transcripts.length} sessions\n- Found ${workflows.length} repeated workflows\n- Saved ${written} distill notes\n\n${summary}`,
+    }
   } catch (e) {
-    setMessages?.([
-      { type: 'text' as const, text: `✗ Distill failed: ${String(e)}` },
-    ])
+    return { type: 'text', value: `✗ Distill failed: ${String(e)}` }
   }
 }
+
+export { call }
 
 type Workflow = {
   name: string

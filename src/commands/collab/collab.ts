@@ -5,33 +5,30 @@ import {
   getCollabStatus,
   getActivePeers,
 } from '../../services/collab/collab.js'
-export default async function collabCommand(
-  call: LocalCommandCall,
-): Promise<void> {
-  const { args, setMessages } = call
+
+const call: LocalCommandCall = async (args, context) => {
   const cmd = args?.trim() || 'status'
   if (cmd === 'start') {
     await startCollab()
-    setMessages?.([
-      {
-        type: 'text' as const,
-        text: '✓ Collaboration started. Broadcasting on LAN...',
-      },
-    ])
-  } else if (cmd === 'stop') {
-    stopCollab()
-    setMessages?.([{ type: 'text' as const, text: '✓ Collaboration stopped.' }])
-  } else if (cmd === 'peers') {
-    const peers = getActivePeers()
-    setMessages?.([
-      {
-        type: 'text' as const,
-        text: peers.length
-          ? peers.map(p => `• ${p.name} (${p.host})`).join('\n')
-          : 'No peers found.',
-      },
-    ])
-  } else {
-    setMessages?.([{ type: 'text' as const, text: getCollabStatus() }])
+    return {
+      type: 'text',
+      value: '✓ Collaboration started. Broadcasting on LAN...',
+    }
   }
+  if (cmd === 'stop') {
+    stopCollab()
+    return { type: 'text', value: '✓ Collaboration stopped.' }
+  }
+  if (cmd === 'peers') {
+    const peers = getActivePeers()
+    return {
+      type: 'text',
+      value: peers.length
+        ? peers.map(p => `• ${p.name} (${p.host})`).join('\n')
+        : 'No peers found.',
+    }
+  }
+  return { type: 'text', value: getCollabStatus() }
 }
+
+export { call }

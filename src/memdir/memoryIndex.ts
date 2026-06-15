@@ -97,11 +97,11 @@ async function readMemoryFile(
       undefined,
       signal,
     )
-    const { frontmatter, body } = parseFrontmatter(content, filePath)
+    const parsed = parseFrontmatter(content, filePath)
     return {
-      content: body || content,
-      description: frontmatter.description || null,
-      type: frontmatter.type || null,
+      content: parsed.content || content,
+      description: parsed.frontmatter.description || null,
+      type: parsed.frontmatter.type || null,
       mtime: stats.mtimeMs,
     }
   } catch {

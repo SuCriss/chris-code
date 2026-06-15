@@ -13,9 +13,11 @@ export type Finding = {
   file: string
   line: number
   severity: Severity
+  level?: 'critical' | 'high' | 'medium' | 'low' | 'info' // alias for severity
   rule: string
   message: string
   snippet: string
+  fix?: string // optional auto-fix suggestion
 }
 
 type Rule = {
@@ -189,16 +191,26 @@ async function walkDir(dir: string, files: string[] = []): Promise<string[]> {
   return files
 }
 
-export async function scanDirectory(dir?: string): Promise<Finding[]> {
+export async function scanDirectory(
+  dir?: string,
+  onProgress?: (scanned: number, total: number, current: string) => void,
+): Promise<Finding[]> {
   const root = dir || getProjectRoot()
   const files = await walkDir(root)
   const findings: Finding[] = []
 
-  for (const filePath of files) {
+  for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+    const filePath = files[fileIndex]
+    const relPath = relative(root, filePath)
+
+    // 报告进度
+    if (onProgress) {
+      onProgress(fileIndex + 1, files.length, relPath)
+    }
+
     const content = await readFile(filePath, 'utf-8').catch(() => null)
     if (!content) continue
 
-    const relPath = relative(root, filePath)
     const lines = content.split('\n')
 
     for (const rule of RULES) {
