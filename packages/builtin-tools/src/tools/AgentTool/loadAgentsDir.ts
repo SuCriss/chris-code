@@ -455,15 +455,15 @@ export function parseAgentFromJson(
 
     // If memory is enabled, inject Write/Edit/Read tools for memory access
     if (isAutoMemoryEnabled() && parsed.memory && tools !== undefined) {
-      const toolSet = new Set(tools)
-      for (const tool of [
+      const memoryTools = [
         FILE_WRITE_TOOL_NAME,
         FILE_EDIT_TOOL_NAME,
         FILE_READ_TOOL_NAME,
-      ]) {
-        if (!toolSet.has(tool)) {
-          tools = [...tools, tool]
-        }
+      ]
+      const toolSet = new Set(tools)
+      const missingTools = memoryTools.filter(tool => !toolSet.has(tool))
+      if (missingTools.length > 0) {
+        tools = [...tools, ...missingTools]
       }
     }
 
@@ -477,8 +477,6 @@ export function parseAgentFromJson(
     const agent: CustomAgentDefinition = {
       agentType: name,
       whenToUse: parsed.description,
-      ...(tools !== undefined ? { tools } : {}),
-      ...(disallowedTools !== undefined ? { disallowedTools } : {}),
       getSystemPrompt: () => {
         if (isAutoMemoryEnabled() && parsed.memory) {
           return (
@@ -488,24 +486,23 @@ export function parseAgentFromJson(
         return systemPrompt
       },
       source,
-      ...(parsed.model ? { model: parsed.model } : {}),
-      ...(parsed.effort !== undefined ? { effort: parsed.effort } : {}),
-      ...(parsed.permissionMode
-        ? { permissionMode: parsed.permissionMode }
-        : {}),
-      ...(parsed.mcpServers && parsed.mcpServers.length > 0
-        ? { mcpServers: parsed.mcpServers }
-        : {}),
-      ...(parsed.hooks ? { hooks: parsed.hooks } : {}),
-      ...(parsed.maxTurns !== undefined ? { maxTurns: parsed.maxTurns } : {}),
-      ...(parsed.skills && parsed.skills.length > 0
-        ? { skills: parsed.skills }
-        : {}),
-      ...(parsed.initialPrompt ? { initialPrompt: parsed.initialPrompt } : {}),
-      ...(parsed.background ? { background: parsed.background } : {}),
-      ...(parsed.memory ? { memory: parsed.memory } : {}),
-      ...(parsed.isolation ? { isolation: parsed.isolation } : {}),
     }
+
+    // Add optional properties
+    if (tools !== undefined) agent.tools = tools
+    if (disallowedTools !== undefined) agent.disallowedTools = disallowedTools
+    if (parsed.model) agent.model = parsed.model
+    if (parsed.effort !== undefined) agent.effort = parsed.effort
+    if (parsed.permissionMode) agent.permissionMode = parsed.permissionMode
+    if (parsed.mcpServers && parsed.mcpServers.length > 0)
+      agent.mcpServers = parsed.mcpServers
+    if (parsed.hooks) agent.hooks = parsed.hooks
+    if (parsed.maxTurns !== undefined) agent.maxTurns = parsed.maxTurns
+    if (parsed.skills && parsed.skills.length > 0) agent.skills = parsed.skills
+    if (parsed.initialPrompt) agent.initialPrompt = parsed.initialPrompt
+    if (parsed.background) agent.background = parsed.background
+    if (parsed.memory) agent.memory = parsed.memory
+    if (parsed.isolation) agent.isolation = parsed.isolation
 
     return agent
   } catch (error) {
@@ -575,13 +572,11 @@ export function parseAgentFromMarkdown(
 
     // Parse background flag
     const backgroundRaw = frontmatter['background']
+    const validBackgroundValues = ['true', 'false', true, false] as const
 
     if (
       backgroundRaw !== undefined &&
-      backgroundRaw !== 'true' &&
-      backgroundRaw !== 'false' &&
-      backgroundRaw !== true &&
-      backgroundRaw !== false
+      !validBackgroundValues.includes(backgroundRaw as any)
     ) {
       logForDebugging(
         `Agent file ${filePath} has invalid background value '${backgroundRaw}'. Must be 'true', 'false', or omitted.`,
@@ -641,8 +636,9 @@ export function parseAgentFromMarkdown(
       (PERMISSION_MODES as readonly string[]).includes(permissionModeRaw)
 
     if (permissionModeRaw && !isValidPermissionMode) {
-      const errorMsg = `Agent file ${filePath} has invalid permissionMode '${permissionModeRaw}'. Valid options: ${PERMISSION_MODES.join(', ')}`
-      logForDebugging(errorMsg)
+      logForDebugging(
+        `Agent file ${filePath} has invalid permissionMode '${permissionModeRaw}'. Valid options: ${PERMISSION_MODES.join(', ')}`,
+      )
     }
 
     // Parse maxTurns from frontmatter
@@ -662,15 +658,15 @@ export function parseAgentFromMarkdown(
 
     // If memory is enabled, inject Write/Edit/Read tools for memory access
     if (isAutoMemoryEnabled() && memory && tools !== undefined) {
-      const toolSet = new Set(tools)
-      for (const tool of [
+      const memoryTools = [
         FILE_WRITE_TOOL_NAME,
         FILE_EDIT_TOOL_NAME,
         FILE_READ_TOOL_NAME,
-      ]) {
-        if (!toolSet.has(tool)) {
-          tools = [...tools, tool]
-        }
+      ]
+      const toolSet = new Set(tools)
+      const missingTools = memoryTools.filter(tool => !toolSet.has(tool))
+      if (missingTools.length > 0) {
+        tools = [...tools, ...missingTools]
       }
     }
 
@@ -712,40 +708,44 @@ export function parseAgentFromMarkdown(
     const hooks = parseHooksFromFrontmatter(frontmatter, agentType)
 
     const systemPrompt = content.trim()
+
+    // Build agent definition with conditional properties
     const agentDef: CustomAgentDefinition = {
       baseDir,
-      agentType: agentType,
-      whenToUse: whenToUse,
-      ...(tools !== undefined ? { tools } : {}),
-      ...(disallowedTools !== undefined ? { disallowedTools } : {}),
-      ...(skills !== undefined ? { skills } : {}),
-      ...(initialPrompt !== undefined ? { initialPrompt } : {}),
-      ...(mcpServers !== undefined && mcpServers.length > 0
-        ? { mcpServers }
-        : {}),
-      ...(hooks !== undefined ? { hooks } : {}),
+      agentType,
+      whenToUse,
       getSystemPrompt: () => {
         if (isAutoMemoryEnabled() && memory) {
-          const memoryPrompt = loadAgentMemoryPrompt(agentType, memory)
-          return systemPrompt + '\n\n' + memoryPrompt
+          return (
+            systemPrompt + '\n\n' + loadAgentMemoryPrompt(agentType, memory)
+          )
         }
         return systemPrompt
       },
       source,
       filename,
-      ...(color && typeof color === 'string' && AGENT_COLORS.includes(color)
-        ? { color }
-        : {}),
-      ...(model !== undefined ? { model } : {}),
-      ...(parsedEffort !== undefined ? { effort: parsedEffort } : {}),
-      ...(isValidPermissionMode
-        ? { permissionMode: permissionModeRaw as PermissionMode }
-        : {}),
-      ...(maxTurns !== undefined ? { maxTurns } : {}),
-      ...(background ? { background } : {}),
-      ...(memory ? { memory } : {}),
-      ...(isolation ? { isolation } : {}),
     }
+
+    // Add optional properties only if defined
+    if (tools !== undefined) agentDef.tools = tools
+    if (disallowedTools !== undefined)
+      agentDef.disallowedTools = disallowedTools
+    if (skills !== undefined) agentDef.skills = skills
+    if (initialPrompt !== undefined) agentDef.initialPrompt = initialPrompt
+    if (mcpServers !== undefined && mcpServers.length > 0)
+      agentDef.mcpServers = mcpServers
+    if (hooks !== undefined) agentDef.hooks = hooks
+    if (color && typeof color === 'string' && AGENT_COLORS.includes(color))
+      agentDef.color = color
+    if (model !== undefined) agentDef.model = model
+    if (parsedEffort !== undefined) agentDef.effort = parsedEffort
+    if (isValidPermissionMode)
+      agentDef.permissionMode = permissionModeRaw as PermissionMode
+    if (maxTurns !== undefined) agentDef.maxTurns = maxTurns
+    if (background) agentDef.background = background
+    if (memory) agentDef.memory = memory
+    if (isolation) agentDef.isolation = isolation
+
     return agentDef
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
