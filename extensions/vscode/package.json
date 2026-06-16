@@ -1,0 +1,94 @@
+{
+  "name": "chris-code-vscode",
+  "displayName": "Chris Code - AI Coding Assistant",
+  "description": "Open-source AI coding agent with persistent memory, security audit, and collaboration mode",
+  "version": "1.1.4",
+  "publisher": "SuCriss",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "coding-assistant",
+    "cli",
+    "terminal",
+    "claude",
+    "llm"
+  ],
+  "main": "./dist/extension.js",
+  "icon": "icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SuCriss/chris-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SuCriss/chris-code/issues"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "chris-code.start",
+        "title": "Chris Code: Start Session",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "chris-code.explain",
+        "title": "Chris Code: Explain Selection",
+        "icon": "$(info)"
+      },
+      {
+        "command": "chris-code.fix",
+        "title": "Chris Code: Fix Code",
+        "icon": "$(lightbulb)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "chris-code.explain",
+          "when": "editorHasSelection",
+          "group": "chris-code@1"
+        },
+        {
+          "command": "chris-code.fix",
+          "when": "editorHasSelection",
+          "group": "chris-code@2"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "chris-code.start",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c"
+      }
+    ],
+    "configuration": {
+      "title": "Chris Code",
+      "properties": {
+        "chris-code.cliPath": {
+          "type": "string",
+          "default": "chris",
+          "description": "Path to the chris-code CLI binary. Use 'chris' if globally installed."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "package": "node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0"
+  }
+}
