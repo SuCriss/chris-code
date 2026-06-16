@@ -2,11 +2,68 @@ import * as vscode from 'vscode'
 
 let terminal: vscode.Terminal | undefined
 
+// 侧边栏 TreeDataProvider
+class ChrisCodeActionsProvider
+  implements vscode.TreeDataProvider<vscode.TreeItem>
+{
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
+    return element
+  }
+
+  getChildren(): vscode.TreeItem[] {
+    const startItem = new vscode.TreeItem(
+      'Start Session',
+      vscode.TreeItemCollapsibleState.None,
+    )
+    startItem.command = { command: 'chris-code.start', title: 'Start Session' }
+    startItem.iconPath = new vscode.ThemeIcon('terminal')
+
+    const explainItem = new vscode.TreeItem(
+      'Explain Selection',
+      vscode.TreeItemCollapsibleState.None,
+    )
+    explainItem.command = {
+      command: 'chris-code.explain',
+      title: 'Explain Selection',
+    }
+    explainItem.iconPath = new vscode.ThemeIcon('info')
+
+    const fixItem = new vscode.TreeItem(
+      'Fix Code',
+      vscode.TreeItemCollapsibleState.None,
+    )
+    fixItem.command = { command: 'chris-code.fix', title: 'Fix Code' }
+    fixItem.iconPath = new vscode.ThemeIcon('lightbulb')
+
+    const auditItem = new vscode.TreeItem(
+      'Run Audit',
+      vscode.TreeItemCollapsibleState.None,
+    )
+    auditItem.command = {
+      command: 'chris-code.start',
+      title: 'Run Audit',
+      arguments: ['--print "/audit"'],
+    }
+    auditItem.iconPath = new vscode.ThemeIcon('shield')
+
+    return [startItem, explainItem, fixItem, auditItem]
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
+  // 注册侧边栏 TreeView
+  const actionsProvider = new ChrisCodeActionsProvider()
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      'chris-code-actions',
+      actionsProvider,
+    ),
+  )
+
   // 启动 Chris Code 终端会话
   context.subscriptions.push(
-    vscode.commands.registerCommand('chris-code.start', () => {
-      launchTerminal(context)
+    vscode.commands.registerCommand('chris-code.start', (args?: string) => {
+      launchTerminal(context, args)
     }),
   )
 
@@ -83,7 +140,6 @@ function launchTerminal(context: vscode.ExtensionContext, args?: string) {
 }
 
 function escapeShellArg(str: string): string {
-  // 转义 shell 特殊字符
   return str
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')

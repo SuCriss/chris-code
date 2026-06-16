@@ -31,6 +31,23 @@
     "url": "https://github.com/SuCriss/chris-code/issues"
   },
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chris-code",
+          "title": "Chris Code",
+          "icon": "icon.png"
+        }
+      ]
+    },
+    "views": {
+      "chris-code": [
+        {
+          "id": "chris-code-actions",
+          "name": "Actions"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "chris-code.start",
