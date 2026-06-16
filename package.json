@@ -1,6 +1,6 @@
 {
   "name": "chris-code",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Chris Code — AI coding assistant in the terminal, powered by multiple LLM providers",
   "type": "module",
   "author": "SuCriss",
