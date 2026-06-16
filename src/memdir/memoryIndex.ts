@@ -4,10 +4,32 @@
  * Replaces the Sonnet side-query approach with direct FTS5 search,
  * eliminating extra API calls and reducing latency.
  *
- * Uses bun:sqlite (Bun built-in, zero external dependencies).
+ * Supports both Bun (bun:sqlite) and Node.js (better-sqlite3).
  */
 
-import { Database } from 'bun:sqlite'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let DatabaseClass: any = null
+
+async function getDatabaseClass(): Promise<any> {
+  if (DatabaseClass) return DatabaseClass
+
+  if (typeof Bun !== 'undefined') {
+    // Bun runtime
+    const bunSqlite = await import('bun:sqlite')
+    DatabaseClass = bunSqlite.Database
+  } else {
+    // Node.js runtime
+    try {
+      const betterSqlite3 = await import('better-sqlite3' as string)
+      DatabaseClass = betterSqlite3.default
+    } catch {
+      throw new Error(
+        'Node.js requires better-sqlite3. Install it with: npm install better-sqlite3',
+      )
+    }
+  }
+  return DatabaseClass
+}
 import { readdir, stat } from 'fs/promises'
 import { basename, join } from 'path'
 import { parseFrontmatter } from '../utils/frontmatterParser.js'
@@ -24,15 +46,18 @@ export type SearchResult = {
   description: string | null
 }
 
-let _db: Database | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _db: any | null = null
 
 function getDbPath(): string {
   return join(getClaudeConfigHomeDir(), DB_FILENAME)
 }
 
-function getDb(): Database {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getDb(): Promise<any> {
   if (_db) return _db
-  _db = new Database(getDbPath())
+  const DbClass = await getDatabaseClass()
+  _db = new DbClass(getDbPath())
   _db.exec('PRAGMA journal_mode=WAL')
   _db.exec(`
     CREATE TABLE IF NOT EXISTS memories (
@@ -117,7 +142,7 @@ export async function buildIndex(
   memoryDir: string,
   signal: AbortSignal,
 ): Promise<number> {
-  const db = getDb()
+  const db = await getDb()
 
   try {
     const entries = await readdir(memoryDir, { recursive: true })
@@ -184,7 +209,7 @@ export async function updateIndex(
   memoryDir: string,
   signal: AbortSignal,
 ): Promise<number> {
-  const db = getDb()
+  const db = await getDb()
 
   try {
     const entries = await readdir(memoryDir, { recursive: true })
@@ -192,7 +217,7 @@ export async function updateIndex(
       .filter(f => f.endsWith('.md') && basename(f) !== 'MEMORY.md')
       .slice(0, MAX_MEMORY_FILES)
 
-    const stored = new Map(
+    const stored = new Map<string, number>(
       db
         .query('SELECT path, mtime FROM memories')
         .all()
@@ -259,11 +284,11 @@ export async function updateIndex(
  * Search the FTS5 index for memories matching the query.
  * Returns up to `limit` results sorted by relevance.
  */
-export function searchMemories(
+export async function searchMemories(
   query: string,
   limit: number = 5,
-): SearchResult[] {
-  const db = getDb()
+): Promise<SearchResult[]> {
+  const db = await getDb()
 
   try {
     const sanitized = query.replace(/['"]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -302,9 +327,9 @@ export function searchMemories(
 /**
  * Check if the database exists and has entries.
  */
-export function hasIndex(): boolean {
+export async function hasIndex(): Promise<boolean> {
   try {
-    const db = getDb()
+    const db = await getDb()
     const row = db.query('SELECT COUNT(*) as cnt FROM memories').get() as {
       cnt: number
     }

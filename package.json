@@ -22,7 +22,8 @@
     "repl"
   ],
   "engines": {
-    "bun": ">=1.3.0"
+    "bun": ">=1.3.0",
+    "node": ">=18.0.0"
   },
   "bin": {
     "chris": "dist/cli-node.js",
@@ -213,6 +214,7 @@
     "zod": "^4.3.6"
   },
   "optionalDependencies": {
+    "better-sqlite3": "^11.0.0",
     "doubaoime-asr": "^0.1.0"
   },
   "overrides": {

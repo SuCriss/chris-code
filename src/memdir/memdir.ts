@@ -482,7 +482,7 @@ export async function loadMemoryPrompt(): Promise<string | null> {
 
     // Build or update FTS5 index (fire-and-forget, doesn't block prompt)
     const ac = new AbortController()
-    const indexPromise = hasIndex()
+    const indexPromise = (await hasIndex())
       ? updateIndex(autoDir, ac.signal)
       : buildIndex(autoDir, ac.signal)
     indexPromise.catch(() => {}) // swallow errors — FTS is best-effort

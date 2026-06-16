@@ -48,9 +48,9 @@ export async function findRelevantMemories(
   parentSpan?: LangfuseSpan | null,
 ): Promise<RelevantMemory[]> {
   // Try FTS5 search first (fast, no API call)
-  if (hasIndex()) {
+  if (await hasIndex()) {
     try {
-      const ftsResults = searchMemories(query, 5 + alreadySurfaced.size)
+      const ftsResults = await searchMemories(query, 5 + alreadySurfaced.size)
       const filtered = ftsResults
         .filter(r => !alreadySurfaced.has(r.path))
         .slice(0, 5)
