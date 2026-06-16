@@ -8,11 +8,23 @@
 
 ## Quick Start
 
+**macOS / Linux:**
+
 ```bash
 # One-line install
 curl -fsSL https://raw.githubusercontent.com/SuCriss/chris-code/main/install | bash
 
 # Or install via npm
+npm install -g chris-code
+
+# Or install via bun
+bun install -g chris-code
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Install via npm
 npm install -g chris-code
 
 # Or install via bun
