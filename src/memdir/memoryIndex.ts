@@ -18,13 +18,14 @@ async function getDatabaseClass(): Promise<any> {
     const bunSqlite = await import('bun:sqlite')
     DatabaseClass = bunSqlite.Database
   } else {
-    // Node.js runtime
+    // Node.js runtime - use libsql which has prebuilt binaries
     try {
-      const betterSqlite3 = await import('better-sqlite3' as string)
-      DatabaseClass = betterSqlite3.default
+      const libsql = await import('libsql')
+      // libsql exports Database class compatible with better-sqlite3 API
+      DatabaseClass = libsql.default
     } catch {
       throw new Error(
-        'Node.js requires better-sqlite3. Install it with: npm install better-sqlite3',
+        'Node.js requires libsql. Install it with: npm install libsql',
       )
     }
   }
